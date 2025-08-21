@@ -1,0 +1,9 @@
+{
+  "name": "pnz-gear-sale2025-consumables-tracker",
+  "version": "1.0.0",
+  "description": "Consumables inventory tracker for P&Z Gear Sale 2025",
+  "main": "pnz-gear-sale-tracker-improved.html",
+  "scripts": {},
+  "author": "kapilthakare-cyberpunk",
+  "license": "MIT"
+}
