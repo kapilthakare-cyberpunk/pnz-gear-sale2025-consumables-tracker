@@ -1,0 +1,918 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>P&Z Gear Sale Event - Consumables Inventory Management</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <style>
+        body {
+            padding: 20px;
+            background-color: #f8f9fa;
+        }
+
+        .card {
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .card-header {
+            background-color: #0d6efd;
+            color: white;
+            font-weight: bold;
+        }
+
+        .main-inventory-card .card-header {
+            background-color: #198754;
+        }
+
+        .stock-item {
+            border-left: 4px solid #0d6efd;
+            margin-bottom: 10px;
+            padding: 10px;
+            background: white;
+            border-radius: 4px;
+        }
+
+        .stock-item.low {
+            border-left-color: #ffc107;
+        }
+
+        .stock-item.out {
+            border-left-color: #dc3545;
+        }
+
+        .search-box {
+            margin-bottom: 20px;
+        }
+
+        .export-buttons {
+            margin: 20px 0;
+        }
+
+        .company-header {
+            background: linear-gradient(135deg, #0d6efd 0%, #198754 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container-fluid">
+        <!-- Company Header -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="company-header text-center">
+                    <h1 class="mb-2">Primes & Zooms</h1>
+                    <p class="lead mb-2">P&Z Gear Sale Event - Consumables Inventory Management</p>
+                    <div class="alert alert-light mb-0"
+                        style="background-color: rgba(255,255,255,0.1); border: none; color: white;">
+                        <i class="bi bi-info-circle"></i> Online inventory system - Data synchronized with Google Sheets
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Inventory Section (Top Priority) -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card main-inventory-card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <span><i class="bi bi-list-ul"></i> Live Inventory</span>
+                        <div class="input-group" style="max-width: 300px;">
+                            <span class="input-group-text"><i class="bi bi-search"></i></span>
+                            <input type="text" class="form-control" id="searchBox" placeholder="Search items...">
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <!-- Consumables Quick Issue Section (refactored above table) -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <div class="card">
+                                    <div class="card-header bg-warning text-dark">
+                                        <i class="bi bi-box-arrow-in-right"></i> Consumables Issue/Return
+                                    </div>
+                                    <div class="card-body">
+                                        <form id="consumableForm" class="row g-3 align-items-end">
+                                            <div class="col-md-5">
+                                                <label for="consumableSelect" class="form-label">Select
+                                                    Consumable</label>
+                                                <select class="form-select" id="consumableSelect"></select>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <label for="tokenNumber" class="form-label">Token Number</label>
+                                                <input type="text" class="form-control" id="tokenNumber"
+                                                    placeholder="Enter token #" required>
+                                            </div>
+                                            <div class="col-md-2 d-grid">
+                                                <button type="button" class="btn btn-success" id="issueBtn"><i
+                                                        class="bi bi-arrow-up-circle"></i> Issue</button>
+                                            </div>
+                                            <div class="col-md-2 d-grid">
+                                                <button type="button" class="btn btn-secondary" id="receiveBtn"><i
+                                                        class="bi bi-arrow-down-circle"></i> Receive/Return</button>
+                                            </div>
+                                        </form>
+                                        <div id="consumableStatus" class="mt-3"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Code</th>
+                                        <th>Description</th>
+                                        <th class="text-end">Rate</th>
+                                        <th class="text-end">Qty</th>
+                                        <th class="text-end">Value</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="inventoryList">
+                                    <!-- Items will be loaded here -->
+                                </tbody>
+                                <tfoot>
+                                    <tr class="table-active">
+                                        <th colspan="4" class="text-end">Total Value:</th>
+                                        <th class="text-end" id="totalValue">₹0.00</th>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Secondary Operations Row -->
+        <div class="row">
+            <!-- Sale Recording Section -->
+            <div class="col-lg-6 col-md-12 mb-4">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <i class="bi bi-receipt"></i> Record Sale
+                    </div>
+                    <div class="card-body">
+                        <form id="saleForm">
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="customerName" class="form-label">Customer Name</label>
+                                    <input type="text" class="form-control" id="customerName" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="invoiceNumber" class="form-label">Invoice Number</label>
+                                    <input type="text" class="form-control" id="invoiceNumber" pattern="25262[0-9]{4}"
+                                        placeholder="e.g., 252620001" required>
+                                    <div class="form-text">Format: 25262XXXX</div>
+                                </div>
+                            </div>
+                            <hr>
+                            <h6>Items to Sell</h6>
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="saleItemSelect" class="form-label">Select Item</label>
+                                    <select class="form-select" id="saleItemSelect"></select>
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="saleQty" class="form-label">Quantity</label>
+                                    <input type="number" class="form-control" id="saleQty" min="1" required>
+                                </div>
+                                <div class="col-md-2 d-flex align-items-end">
+                                    <button type="button" class="btn btn-success w-100" id="addItemToSaleBtn">
+                                        <i class="bi bi-plus-circle"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <ul class="list-group" id="itemsToSellList"
+                                    style="max-height: 200px; overflow-y: auto;">
+                                    <!-- Items added to sale will appear here -->
+                                </ul>
+                            </div>
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="bi bi-receipt"></i> Complete Sale
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Add/Update Items Section -->
+            <div class="col-lg-6 col-md-12 mb-4">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <i class="bi bi-plus-circle"></i> Add/Update Item
+                    </div>
+                    <div class="card-body">
+                        <form id="itemForm">
+                            <div class="mb-3">
+                                <label for="itemCode" class="form-label">Item Code</label>
+                                <input type="text" class="form-control" id="itemCode" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="itemDescription" class="form-label">Description</label>
+                                <input type="text" class="form-control" id="itemDescription" required>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="itemRate" class="form-label">Rate (₹)</label>
+                                    <input type="number" step="0.01" class="form-control" id="itemRate" required>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="itemQty" class="form-label">Quantity</label>
+                                    <input type="number" class="form-control" id="itemQty" required>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="itemUnit" class="form-label">Unit</label>
+                                <select class="form-select" id="itemUnit">
+                                    <option value="pcs">Pieces</option>
+                                    <option value="box">Box</option>
+                                    <option value="set">Set</option>
+                                    <option value="kg">Kilogram</option>
+                                    <option value="gm">Gram</option>
+                                    <option value="ltr">Liter</option>
+                                    <option value="mtr">Meter</option>
+                                </select>
+                            </div>
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="bi bi-save"></i> Save Item
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Data Management Row -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <i class="bi bi-gear"></i> Data Management
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-lg-4 mb-3">
+                                <h6>Import Data</h6>
+                                <div class="mb-2">
+                                    <label for="importFile" class="form-label">Import from CSV</label>
+                                    <input class="form-control" type="file" id="importFile" accept=".csv">
+                                    <div class="form-text">CSV format: Item Id, Item Name, Qty, Sale Price</div>
+                                </div>
+                            </div>
+                            <div class="col-lg-4 mb-3 d-flex flex-column justify-content-center">
+                                <h6>Export Data</h6>
+                                <button class="btn btn-outline-secondary mb-2" id="exportBtn">
+                                    <i class="bi bi-download"></i> Export to CSV
+                                </button>
+                            </div>
+                            <div class="col-lg-4 mb-3 d-flex flex-column justify-content-center">
+                                <h6>Reset System</h6>
+                                <button class="btn btn-outline-danger" id="clearDataBtn">
+                                    <i class="bi bi-trash"></i> Clear All Data
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Item Modal -->
+    <div class="modal fade" id="editItemModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Edit Item</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="editItemForm">
+                        <input type="hidden" id="editItemCode">
+                        <div class="mb-3">
+                            <label for="editItemDescription" class="form-label">Description</label>
+                            <input type="text" class="form-control" id="editItemDescription" required>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="editItemRate" class="form-label">Rate (₹)</label>
+                                <input type="number" step="0.01" class="form-control" id="editItemRate" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="editItemQty" class="form-label">Quantity</label>
+                                <input type="number" class="form-control" id="editItemQty" required>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="editItemUnit" class="form-label">Unit</label>
+                            <select class="form-select" id="editItemUnit">
+                                <option value="pcs">Pieces</option>
+                                <option value="box">Box</option>
+                                <option value="set">Set</option>
+                                <option value="kg">Kilogram</option>
+                                <option value="gm">Gram</option>
+                                <option value="ltr">Liter</option>
+                                <option value="mtr">Meter</option>
+                            </select>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="saveEditBtn">Save Changes</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS and dependencies -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Main Application Script -->
+    <script>
+        // Initialize the application when the DOM is fully loaded
+        document.addEventListener('DOMContentLoaded', function () {
+            // Try to load from Google Sheets first, fallback to local storage
+            fetchInventory();
+            generateInvoiceNumber();
+
+            // Set up auto-save to Google Sheets every 5 minutes
+            setInterval(saveInventoryToSheets, 5 * 60 * 1000);
+
+            // Initialize Bootstrap tooltips
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+
+            // Initialize the edit modal
+            const editItemModal = new bootstrap.Modal(document.getElementById('editItemModal'));
+
+            // Event Listeners
+            document.getElementById('itemForm').addEventListener('submit', handleAddItem);
+            document.getElementById('searchBox').addEventListener('input', filterItems);
+            document.getElementById('exportBtn').addEventListener('click', exportToCSV);
+            document.getElementById('importFile').addEventListener('change', importFromCSV);
+            document.getElementById('clearDataBtn').addEventListener('click', clearAllData);
+            document.getElementById('saveEditBtn').addEventListener('click', saveEditedItem);
+
+            // Event Listeners for Sale Form
+            document.getElementById('addItemToSaleBtn').addEventListener('click', addItemToSale);
+            document.getElementById('saleForm').addEventListener('submit', completeSale);
+
+            // Initial population of sale item select
+            populateSaleItemSelect();
+        });
+
+        // Global variables
+        let inventory = [];
+        const API_URL = 'https://script.google.com/macros/s/AKfycbzAV_Csp8QLEKDfvlrFh90AJRguAvyinQ_9lGMTOnHlYmAmDHVkRIh1KkHqcEL9uEuF/exec';
+
+        // Function to fetch inventory from API
+        async function fetchInventory() {
+            try {
+                const response = await fetch(API_URL);
+                const result = await response.json();
+                if (result.status === 'success') {
+                    // Transform the API data to match our expected format
+                    inventory = result.data.map(item => ({
+                        item_code: item.item_id.toString(),
+                        name: item.item_name,
+                        quantity: item.qty,
+                        price: item.sale_price,
+                        // Add default values for other required fields
+                        category: 'Gear',
+                        description: item.item_name,
+                        cost: Math.round(item.sale_price * 0.8), // Example: 80% of sale price
+                        vendor: 'P&Z',
+                        last_updated: new Date().toISOString().split('T')[0]
+                    }));
+
+                    // Save to localStorage as fallback
+                    saveInventory(inventory);
+                    renderInventory();
+                    populateSaleItemSelect();
+                } else {
+                    console.error('Failed to fetch inventory:', result.message);
+                    alert('Failed to load inventory. Using local storage as fallback.');
+                    loadInventory();
+                }
+            } catch (error) {
+                console.error('Error fetching inventory:', error);
+                alert('Error connecting to server. Using local storage as fallback.');
+                loadInventory();
+            }
+        }
+
+        // Function to save inventory to Google Sheets
+        async function saveInventoryToSheets() {
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(inventory)
+                });
+                const result = await response.json();
+                if (result.status !== 'success') {
+                    console.error('Failed to save inventory to Google Sheets:', result.message);
+                    // Fallback to local storage
+                    saveInventory(inventory);
+                }
+            } catch (error) {
+                console.error('Error saving to Google Sheets:', error);
+                // Fallback to local storage
+                saveInventory(inventory);
+            }
+        }
+
+        // Function to generate invoice number
+        function generateInvoiceNumber() {
+            const lastInvoiceNum = parseInt(localStorage.getItem('lastInvoiceNum') || '0');
+            const newInvoiceNum = lastInvoiceNum + 1;
+            localStorage.setItem('lastInvoiceNum', newInvoiceNum);
+            return `25262${String(newInvoiceNum).padStart(4, '0')}`;
+        }
+
+        // Function to populate the sale item select dropdown
+        function populateSaleItemSelect() {
+            const inventory = getInventory();
+            const saleItemSelect = document.getElementById('saleItemSelect');
+            saleItemSelect.innerHTML = ''; // Clear existing options
+
+            if (inventory.length === 0) {
+                const option = document.createElement('option');
+                option.value = '';
+                option.textContent = 'No items available';
+                option.disabled = true;
+                saleItemSelect.appendChild(option);
+                return;
+            }
+
+            inventory.forEach(item => {
+                if (item.Available_Qty > 0) { // Only show items in stock
+                    const option = document.createElement('option');
+                    option.value = item.Item_Code;
+                    option.textContent = `${item.Item_Description} (Qty: ${item.Available_Qty})`;
+                    saleItemSelect.appendChild(option);
+                }
+            });
+        }
+
+        let itemsToSell = []; // Temporary array to hold items for the current sale
+
+        // Function to add an item to the temporary sale list
+        function addItemToSale() {
+            const saleItemSelect = document.getElementById('saleItemSelect');
+            const saleQtyInput = document.getElementById('saleQty');
+            const itemsToSellList = document.getElementById('itemsToSellList');
+
+            const itemCode = saleItemSelect.value;
+            const qtyToSell = parseInt(saleQtyInput.value);
+
+            if (!itemCode || isNaN(qtyToSell) || qtyToSell <= 0) {
+                alert('Please select an item and enter a valid quantity.');
+                return;
+            }
+
+            const inventory = getInventory();
+            const selectedItem = inventory.find(item => item.Item_Code === itemCode);
+
+            if (!selectedItem) {
+                alert('Selected item not found in inventory.');
+                return;
+            }
+
+            if (qtyToSell > selectedItem.Available_Qty) {
+                alert(`Not enough stock for ${selectedItem.Item_Description}. Available: ${selectedItem.Available_Qty}`);
+                return;
+            }
+
+            // Check if item already in temporary sale list
+            const existingSaleItemIndex = itemsToSell.findIndex(item => item.Item_Code === itemCode);
+            if (existingSaleItemIndex !== -1) {
+                itemsToSell[existingSaleItemIndex].Qty += qtyToSell;
+            } else {
+                itemsToSell.push({
+                    Item_Code: itemCode,
+                    Item_Description: selectedItem.Item_Description,
+                    Qty: qtyToSell
+                });
+            }
+
+            renderItemsToSellList();
+            saleQtyInput.value = ''; // Clear quantity input
+        }
+
+        // Function to render items in the temporary sale list
+        function renderItemsToSellList() {
+            const itemsToSellList = document.getElementById('itemsToSellList');
+            itemsToSellList.innerHTML = '';
+
+            if (itemsToSell.length === 0) {
+                itemsToSellList.innerHTML = '<li class="list-group-item text-muted">No items added to sale yet.</li>';
+                return;
+            }
+
+            itemsToSell.forEach((item, index) => {
+                const li = document.createElement('li');
+                li.className = 'list-group-item d-flex justify-content-between align-items-center';
+                li.innerHTML = `
+                    ${item.Item_Description} (Qty: ${item.Qty})
+                    <button type="button" class="btn btn-sm btn-danger remove-sale-item-btn" data-index="${index}">
+                        <i class="bi bi-x"></i>
+                    </button>
+                `;
+                itemsToSellList.appendChild(li);
+            });
+
+            document.querySelectorAll('.remove-sale-item-btn').forEach(btn => {
+                btn.addEventListener('click', function () {
+                    const index = parseInt(this.getAttribute('data-index'));
+                    itemsToSell.splice(index, 1);
+                    renderItemsToSellList();
+                });
+            });
+        }
+
+        // Function to complete the sale
+        function completeSale(e) {
+            e.preventDefault();
+
+            const customerName = document.getElementById('customerName').value.trim();
+            const invoiceNumber = document.getElementById('invoiceNumber').value.trim();
+
+            if (!customerName || !invoiceNumber) {
+                alert('Please enter customer name and invoice number.');
+                return;
+            }
+
+            if (!/^25262[0-9]{4}$/.test(invoiceNumber)) {
+                alert('Invoice number must be in the format 25262XXXX.');
+                return;
+            }
+
+            if (itemsToSell.length === 0) {
+                alert('Please add items to the sale.');
+                return;
+            }
+
+            let inventory = getInventory();
+            let saleSuccessful = true;
+
+            // Deduct quantities from inventory
+            itemsToSell.forEach(saleItem => {
+                const itemIndex = inventory.findIndex(invItem => invItem.Item_Code === saleItem.Item_Code);
+                if (itemIndex !== -1) {
+                    inventory[itemIndex].Available_Qty -= saleItem.Qty;
+                } else {
+                    // This case should ideally not happen if checks are done correctly
+                    console.error(`Item ${saleItem.Item_Code} not found in inventory during sale deduction.`);
+                    saleSuccessful = false;
+                }
+            });
+
+            if (!saleSuccessful) {
+                alert('An error occurred during sale. Check console for details.');
+                return;
+            }
+
+            saveInventory(inventory);
+            loadInventory(); // Refresh inventory display
+            populateSaleItemSelect(); // Re-populate dropdown with updated quantities
+
+            alert(`Sale completed successfully! Invoice: ${invoiceNumber}`);
+
+            // Clear sale form
+            document.getElementById('saleForm').reset();
+            itemsToSell = [];
+            renderItemsToSellList();
+
+            // Generate new invoice number for next sale
+            document.getElementById('invoiceNumber').value = generateInvoiceNumber();
+        }
+
+        // Initial render of items to sell list
+        renderItemsToSellList();
+
+        // Generate initial invoice number
+        document.getElementById('invoiceNumber').value = generateInvoiceNumber();
+
+        // Load inventory from localStorage
+        function loadInventory() {
+            const inventory = getInventory();
+            const tbody = document.getElementById('inventoryList');
+            tbody.innerHTML = '';
+
+            let totalValue = 0;
+
+            if (inventory.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4">No items found. Add some items to get started.</td></tr>';
+                document.getElementById('totalValue').textContent = '₹0.00';
+                return;
+            }
+
+            inventory.forEach(item => {
+                const row = document.createElement('tr');
+                const itemValue = item.Rate * item.Available_Qty;
+                totalValue += itemValue;
+
+                // Determine row class based on quantity
+                let rowClass = '';
+                if (item.Available_Qty <= 0) {
+                    rowClass = 'table-danger';
+                } else if (item.Available_Qty < 5) {
+                    rowClass = 'table-warning';
+                }
+
+                row.className = rowClass;
+
+                row.innerHTML = `
+                    <td>${item.Item_Code}</td>
+                    <td>${item.Item_Description}</td>
+                    <td class="text-end">₹${parseFloat(item.Rate).toFixed(2)}</td>
+                    <td class="text-end">
+                        <span class="badge ${item.Available_Qty <= 0 ? 'bg-danger' : item.Available_Qty < 5 ? 'bg-warning' : 'bg-success'}">
+                            ${item.Available_Qty} ${item.Unit}
+                        </span>
+                    </td>
+                    <td class="text-end">₹${itemValue.toFixed(2)}</td>
+                `;
+
+                tbody.appendChild(row);
+            });
+
+            // Update total value
+            document.getElementById('totalValue').textContent = `₹${totalValue.toFixed(2)}`;
+
+            // Add event listeners to edit and delete buttons
+            document.querySelectorAll('.edit-btn').forEach(btn => {
+                btn.addEventListener('click', function () {
+                    const itemCode = this.getAttribute('data-code');
+                    editItem(itemCode);
+                });
+            });
+
+            document.querySelectorAll('.delete-btn').forEach(btn => {
+                btn.addEventListener('click', function () {
+                    const itemCode = this.getAttribute('data-code');
+                    if (confirm(`Are you sure you want to delete item ${itemCode}?`)) {
+                        deleteItem(itemCode);
+                    }
+                });
+            });
+        }
+
+        // Get inventory from localStorage
+        function getInventory() {
+            const inventoryJSON = localStorage.getItem('inventory');
+            return inventoryJSON ? JSON.parse(inventoryJSON) : [];
+        }
+
+        // Save inventory to localStorage
+        function saveInventory(inventory) {
+            localStorage.setItem('inventory', JSON.stringify(inventory));
+        }
+
+        // Handle form submission for adding a new item
+        function handleAddItem(e) {
+            e.preventDefault();
+
+            const itemCode = document.getElementById('itemCode').value.trim();
+            const itemDescription = document.getElementById('itemDescription').value.trim();
+            const itemRate = parseFloat(document.getElementById('itemRate').value);
+            const itemQty = parseInt(document.getElementById('itemQty').value);
+            const itemUnit = document.getElementById('itemUnit').value;
+
+            if (!itemCode || !itemDescription || isNaN(itemRate) || isNaN(itemQty)) {
+                alert('Please fill in all required fields with valid values.');
+                return;
+            }
+
+            const inventory = getInventory();
+            const existingItemIndex = inventory.findIndex(item => item.Item_Code === itemCode);
+
+            const newItem = {
+                Item_Code: itemCode,
+                Item_Description: itemDescription,
+                Rate: itemRate,
+                Available_Qty: itemQty,
+                Unit: itemUnit
+            };
+
+            if (existingItemIndex !== -1) {
+                // Update existing item
+                inventory[existingItemIndex] = newItem;
+                alert(`Item ${itemCode} updated successfully!`);
+            } else {
+                // Add new item
+                inventory.push(newItem);
+                alert(`Item ${itemCode} added successfully!`);
+            }
+
+            saveInventory(inventory);
+            loadInventory();
+            populateSaleItemSelect(); // Refresh sale dropdown
+
+            // Reset form
+            document.getElementById('itemForm').reset();
+            document.getElementById('itemCode').focus();
+        }
+
+        // Filter items based on search input
+        function filterItems() {
+            const searchTerm = this.value.toLowerCase();
+            const rows = document.querySelectorAll('#inventoryList tr');
+
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                row.style.display = text.includes(searchTerm) ? '' : 'none';
+            });
+        }
+
+        // Export inventory to CSV
+        function exportToCSV() {
+            const inventory = getInventory();
+            if (inventory.length === 0) {
+                alert('No data to export.');
+                return;
+            }
+
+            // Convert to CSV
+            const headers = ['Item_Code', 'Item_Description', 'Rate', 'Available_Qty', 'Unit'];
+            let csvContent = headers.join(',') + '\n';
+
+            inventory.forEach(item => {
+                const row = headers.map(header => {
+                    // Escape quotes and wrap in quotes if contains comma or quote
+                    const value = String(item[header] || '').replace(/"/g, '""');
+                    return `"${value}"`;
+                });
+                csvContent += row.join(',') + '\n';
+            });
+
+            // Create download link
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `PNZ_inventory_${new Date().toISOString().split('T')[0]}.csv`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // Import inventory from CSV
+        function importFromCSV(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                try {
+                    const content = e.target.result;
+                    const lines = content.split('\n');
+                    const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
+
+                    // Validate headers
+                    const requiredHeaders = ['Item Id', 'Item Name', 'Qty', 'Sale Price'];
+                    const isValid = requiredHeaders.every(h => headers.includes(h));
+
+                    if (!isValid) {
+                        alert('Invalid CSV format. Required columns: Item Id, Item Name, Qty, Sale Price');
+                        return;
+                    }
+
+                    const inventory = [];
+                    let importedCount = 0;
+
+                    // Process each line
+                    for (let i = 1; i < lines.length; i++) {
+                        if (!lines[i].trim()) continue;
+
+                        const values = lines[i].split(',').map(val => val.trim().replace(/^"|"$/g, ''));
+
+                        if (values.length < headers.length) continue;
+
+                        const item = {
+                            Item_Code: values[headers.indexOf('Item Id')] || '',
+                            Item_Description: values[headers.indexOf('Item Name')] || '',
+                            Rate: parseFloat(values[headers.indexOf('Sale Price')]) || 0,
+                            Available_Qty: parseInt(values[headers.indexOf('Qty')]) || 0,
+                            Unit: 'pcs' // Default unit to 'pcs' or infer if possible
+                        };
+
+                        inventory.push(item);
+                        importedCount++;
+                    }
+
+                    // Save imported data
+                    saveInventory(inventory);
+                    loadInventory();
+                    populateSaleItemSelect();
+
+                    alert(`Successfully imported ${importedCount} items.`);
+
+                } catch (error) {
+                    console.error('Error importing CSV:', error);
+                    alert('Error importing CSV: ' + error.message + '. Please check the file format and try again.');
+                }
+
+                // Reset file input
+                e.target.value = '';
+            };
+
+            reader.readAsText(file);
+        }
+
+        // Clear all data
+        function clearAllData() {
+            if (confirm('Are you sure you want to delete all inventory data? This cannot be undone.')) {
+                localStorage.removeItem('inventory');
+                localStorage.removeItem('lastInvoiceNum');
+                loadInventory();
+                populateSaleItemSelect();
+                document.getElementById('invoiceNumber').value = generateInvoiceNumber();
+                alert('All inventory data has been cleared.');
+            }
+        }
+
+        // Placeholder functions for edit/delete (if needed later)
+        function editItem(itemCode) {
+            const inventory = getInventory();
+            const item = inventory.find(inv => inv.Item_Code === itemCode);
+            if (!item) return;
+
+            // Populate edit form
+            document.getElementById('editItemCode').value = item.Item_Code;
+            document.getElementById('editItemDescription').value = item.Item_Description;
+            document.getElementById('editItemRate').value = item.Rate;
+            document.getElementById('editItemQty').value = item.Available_Qty;
+            document.getElementById('editItemUnit').value = item.Unit;
+
+            // Show modal
+            const editModal = bootstrap.Modal.getInstance(document.getElementById('editItemModal')) || new bootstrap.Modal(document.getElementById('editItemModal'));
+            editModal.show();
+        }
+
+        function saveEditedItem() {
+            const itemCode = document.getElementById('editItemCode').value;
+            const itemDescription = document.getElementById('editItemDescription').value.trim();
+            const itemRate = parseFloat(document.getElementById('editItemRate').value);
+            const itemQty = parseInt(document.getElementById('editItemQty').value);
+            const itemUnit = document.getElementById('editItemUnit').value;
+
+            if (!itemDescription || isNaN(itemRate) || isNaN(itemQty)) {
+                alert('Please fill in all required fields with valid values.');
+                return;
+            }
+
+            let inventory = getInventory();
+            const itemIndex = inventory.findIndex(item => item.Item_Code === itemCode);
+
+            if (itemIndex !== -1) {
+                inventory[itemIndex] = {
+                    Item_Code: itemCode,
+                    Item_Description: itemDescription,
+                    Rate: itemRate,
+                    Available_Qty: itemQty,
+                    Unit: itemUnit
+                };
+
+                saveInventory(inventory);
+                loadInventory();
+                populateSaleItemSelect();
+
+                // Hide modal
+                const editModal = bootstrap.Modal.getInstance(document.getElementById('editItemModal'));
+                editModal.hide();
+
+                alert(`Item ${itemCode} updated successfully!`);
+            }
+        }
+
+        function deleteItem(itemCode) {
+            let inventory = getInventory();
+            inventory = inventory.filter(item => item.Item_Code !== itemCode);
+            saveInventory(inventory);
+            loadInventory();
+            populateSaleItemSelect();
+            alert(`Item ${itemCode} deleted successfully!`);
+        }
+    </script>
+</body>
+
+</html>
