@@ -448,6 +448,40 @@
         }
 
         // Function to populate the sale item select dropdown
+            // Populate only consumables in the Consumables Issue/Return dropdown
+            function populateConsumableSelect() {
+                const inventory = getInventory();
+                const consumableSelect = document.getElementById('consumableSelect');
+                consumableSelect.innerHTML = '';
+
+                // Consumable keywords (expand as needed)
+                const consumableKeywords = ['Fender', 'Bracket'];
+
+                const filtered = inventory.filter(item => {
+                    if (item.Available_Qty > 0) {
+                        return consumableKeywords.some(keyword => item.Item_Description && item.Item_Description.toLowerCase().includes(keyword.toLowerCase()));
+                    }
+                    return false;
+                });
+
+                if (filtered.length === 0) {
+                    const option = document.createElement('option');
+                    option.value = '';
+                    option.textContent = 'No consumables available';
+                    option.disabled = true;
+                    consumableSelect.appendChild(option);
+                    return;
+                }
+
+                filtered.forEach(item => {
+                    const option = document.createElement('option');
+                    option.value = item.Item_Code;
+                    option.textContent = `${item.Item_Description} (Qty: ${item.Available_Qty})`;
+                    consumableSelect.appendChild(option);
+                });
+            }
+            // ...existing code...
+            populateConsumableSelect();
         function populateSaleItemSelect() {
             const inventory = getInventory();
             const saleItemSelect = document.getElementById('saleItemSelect');

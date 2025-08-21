@@ -5,5 +5,8 @@
   "main": "pnz-gear-sale-tracker-improved.html",
   "scripts": {},
   "author": "kapilthakare-cyberpunk",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "firebase": "^12.1.0"
+  }
 }
