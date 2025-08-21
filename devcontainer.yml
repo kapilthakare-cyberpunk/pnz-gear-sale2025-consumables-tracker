@@ -1,0 +1,35 @@
+# Codespace configuration for pnz-gear-sale2025-consumables-tracker
+# This file sets up the environment for GitHub Codespaces
+
+version: 1
+
+# Use a basic Node.js image (for frontend and scripting)
+# You can change to 'mcr.microsoft.com/devcontainers/typescript-node:0-20' for TypeScript
+image: mcr.microsoft.com/devcontainers/base:ubuntu
+
+features:
+  - ghcr.io/devcontainers/features/node:1
+  - ghcr.io/devcontainers/features/github-cli:1
+  - ghcr.io/devcontainers/features/docker-in-docker:2
+
+# Forward ports for local web preview (if you run a local server)
+forwardPorts:
+  - 8080
+  - 3000
+
+# Set up post-create commands (install dependencies, etc.)
+postCreateCommand: |
+  echo "Codespace ready!"
+
+# Set environment variables if needed
+# env:
+#   NODE_ENV: development
+
+# Optionally, add VS Code extensions
+# extensions:
+#   - ms-vscode.vscode-typescript-next
+#   - ms-python.python
+
+# Optionally, mount secrets or dotfiles
+# dotfiles:
+#   repository: github.com/yourusername/dotfiles
