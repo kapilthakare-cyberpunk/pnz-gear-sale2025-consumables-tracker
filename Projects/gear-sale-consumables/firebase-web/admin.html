@@ -1,0 +1,99 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Admin - Edit Bundles</title>
+  <style>body{font-family:Arial;padding:20px}textarea{width:100%;height:60vh;font-family:monospace}</style>
+</head>
+<body>
+  <h2>Bundles JSON Admin (local only)</h2>
+  <p>Download, edit locally, and upload a new JSON; this endpoint only works when running the local Node server.</p>
+  <p>
+    <button id="downloadBtn">Download current bundles.json</button>
+    <input id="fileInput" type="file" accept="application/json" />
+    <button id="uploadBtn">Upload and replace</button>
+  </p>
+  <div style="margin:12px 0; padding:8px; border:1px solid #ddd; border-radius:6px;">
+    <strong>Admin login</strong>
+    <div id="authArea">
+      <input id="email" placeholder="email" />
+      <input id="password" placeholder="password" type="password" />
+      <button id="signInBtn">Sign in</button>
+      <button id="signOutBtn" style="display:none">Sign out</button>
+      <span id="userStatus" style="margin-left:8px"></span>
+    </div>
+  </div>
+  <textarea id="editor"></textarea>
+  <script>
+    // Initialize Firebase (uses shared config)
+    (function(){
+      var s = document.createElement('script'); s.src='/firebase-web/firebaseConfig.js'; document.head.appendChild(s);
+      var sdk = document.createElement('script'); sdk.src='https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js'; document.head.appendChild(sdk);
+      var auth = document.createElement('script'); auth.src='https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js'; document.head.appendChild(auth);
+      var fs = document.createElement('script'); fs.src='https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js'; document.head.appendChild(fs);
+    })();
+    async function load() {
+      const res = await fetch('/firebase-web/data/bundles.json');
+      const json = await res.text();
+      document.getElementById('editor').value = json;
+    }
+    // Auth helpers
+    async function saveToFirestore(jsonText) {
+      try {
+        if(typeof firebase === 'undefined') throw new Error('Firebase not loaded');
+        const user = firebase.auth().currentUser;
+        if(!user) throw new Error('Not signed in');
+  // Check admin doc (top-level 'admins' collection)
+  const db = firebase.firestore();
+  const adminDoc = await db.doc(`admins/${user.uid}`).get();
+  if(!adminDoc.exists) throw new Error('User is not an admin');
+        const parsed = JSON.parse(jsonText);
+        await db.doc('meta/bundles').set({bundles: parsed});
+        return 'Saved to Firestore (meta/bundles)';
+      } catch (e) { throw e }
+    }
+    // Wait for Firebase to be available before wiring auth
+    function whenFirebaseReady(cb){
+      const max = 5000; let waited = 0;
+      const iv = setInterval(()=>{
+        if(window.firebase && firebase.auth && firebase.firestore){ clearInterval(iv); cb(); }
+        waited += 100; if(waited>max){ clearInterval(iv); console.warn('Firebase SDK not ready'); cb(); }
+      },100);
+    }
+    whenFirebaseReady(()=>{
+      const signInBtn = document.getElementById('signInBtn');
+      const signOutBtn = document.getElementById('signOutBtn');
+      signInBtn.addEventListener('click', async ()=>{
+        const email = document.getElementById('email').value;
+        const pw = document.getElementById('password').value;
+        try{ await firebase.auth().signInWithEmailAndPassword(email, pw); document.getElementById('userStatus').textContent = 'Signed in'; signOutBtn.style.display=''; }catch(e){ alert('Sign-in failed: '+e.message) }
+      });
+      signOutBtn.addEventListener('click', async ()=>{ await firebase.auth().signOut(); document.getElementById('userStatus').textContent = 'Signed out'; signOutBtn.style.display='none'; });
+      firebase.auth().onAuthStateChanged(u=>{ document.getElementById('userStatus').textContent = u ? ('Signed in: '+u.email) : 'Not signed in'; if(u) signOutBtn.style.display=''; });
+    });
+    document.getElementById('downloadBtn').addEventListener('click', async ()=>{
+      const data = document.getElementById('editor').value;
+      const blob = new Blob([data], {type:'application/json'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = 'bundles.json'; a.click(); URL.revokeObjectURL(url);
+    });
+    document.getElementById('uploadBtn').addEventListener('click', async ()=>{
+      const data = document.getElementById('editor').value;
+      // Try Firestore write first, fall back to local server upload
+      try{
+        const msg = await saveToFirestore(data);
+        alert(msg);
+      }catch(e){
+        try{
+          const res = await fetch('/admin/upload-bundles', {method:'POST', headers:{'Content-Type':'application/json'}, body: data});
+          const txt = await res.text(); alert(txt);
+        }catch(err){ alert('Both Firestore save and local upload failed: '+err.message) }
+      }
+    });
+    document.getElementById('fileInput').addEventListener('change', async (e)=>{
+      const f = e.target.files[0]; if(!f) return; const t = await f.text(); document.getElementById('editor').value = t;
+    });
+    load();
+  </script>
+</body>
+</html>
