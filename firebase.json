@@ -1,13 +1,16 @@
 {
-  "apphosting": {
-    "backendId": "pnz-gear-sale2025-backend",
-    "rootDir": "/",
+  "hosting": {
+    "public": ".",
     "ignore": [
-      "node_modules",
-      ".git",
-      "firebase-debug.log",
-      "firebase-debug.*.log",
-      "functions"
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/pnz-gear-sale-tracker-improved.html"
+      }
     ]
   }
 }
